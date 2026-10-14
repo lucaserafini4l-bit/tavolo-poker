@@ -1,0 +1,247 @@
+<header class="topbar">
+  <h1 class="brand">Tavolo <span>Poker</span></h1>
+  <div class="topinfo">
+    <span class="pill num" id="topBlinds">20/40</span>
+    <span class="pill num" id="topClock">10:00</span>
+  </div>
+</header>
+
+<main>
+  <!-- ================= TAVOLO ================= -->
+  <section class="view" id="v-tavolo" aria-label="Tavolo">
+    <div class="duo">
+      <div class="view">
+        <div class="card">
+          <div class="timer">
+            <div>
+              <div class="lv" id="tLevel">Livello 1 di 5</div>
+              <div class="blinds num" id="tBlinds">20 / 40</div>
+            </div>
+            <div class="clock num paused" id="tClock">10:00</div>
+            <div class="progress"><i id="tProg"></i></div>
+            <div class="next" id="tNext">Prossimo livello: <b>40 / 80</b></div>
+            <div class="next" id="tHandNote" style="text-align:right"></div>
+          </div>
+          <div class="tctrl">
+            <button class="btn icon" id="tPrev" type="button" aria-label="Livello precedente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+            <button class="btn primary" id="tPlay" type="button">Avvia timer</button>
+            <button class="btn icon" id="tReset" type="button" aria-label="Riavvia il livello"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4h4"/></svg></button>
+            <button class="btn icon" id="tNextLv" type="button" aria-label="Livello successivo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+          </div>
+          <label class="dur" for="tDur">Durata livello <input id="tDur" type="range" min="5" max="15" step="1" value="10"><output id="tDurOut">10 min</output></label>
+        </div>
+
+        <div class="card" style="padding:10px">
+          <div class="tablewrap" id="tableWrap">
+            <div class="felt"></div>
+            <div class="center">
+              <span class="lbl" id="cHand">Mano —</span>
+              <span class="pot num" id="cPot">Piatto 0</span>
+              <span class="first" id="cFirst"></span>
+              <span class="meta" id="cMeta"></span>
+            </div>
+          </div>
+          <div class="tableactions">
+            <button class="btn primary big" id="nextHand" type="button">Inizia la prima mano</button>
+            <button class="btn big" id="goPot" type="button">Piatto</button>
+          </div>
+          <p class="note" id="tableHint">Tocca un giocatore per cambiare fiches, nome o posizione del mazziere.</p>
+        </div>
+      </div>
+
+      <div class="view">
+        <div class="stats3">
+          <div class="stat"><span class="lbl">In gioco</span><b class="num" id="sAlive">6/6</b></div>
+          <div class="stat"><span class="lbl">Stack medio</span><b class="num" id="sAvg">1000</b></div>
+          <div class="stat"><span class="lbl">Controllo fiches</span><b class="num" id="sCheck">6000</b></div>
+        </div>
+        <div class="card">
+          <span class="lbl">Struttura dei bui</span>
+          <div class="tablescroll"><table class="tbl" id="lvTable"></table></div>
+          <p class="note">Il "numero magico" accanto a ogni giocatore è fiches ÷ grande buio: <span class="phase-calma">15+ calma</span>, <span class="phase-attacco">8–14 attacco</span>, <span class="phase-urgenza">sotto 8 urgenza</span>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= PIATTO ================= -->
+  <section class="view" id="v-piatto" aria-label="Piatto" hidden>
+    <div class="card" id="potNoHand">
+      <span class="lbl">Nessuna mano in corso</span>
+      <p class="note" id="potNoHandMsg">Avvia una mano dalla schermata Tavolo: i bui vengono messi nel piatto in automatico.</p>
+      <button class="btn primary big" id="potStart" type="button">Inizia la mano</button>
+    </div>
+    <div class="view" id="potHand" hidden>
+      <div class="card">
+        <div class="row"><span class="lbl" id="pHandLbl">Mano 1</span><span class="spacer"></span><button class="btn" id="pUndo" type="button">Annulla</button></div>
+        <div class="streets" id="pStreets"><span>Pre-flop</span><span>Flop</span><span>Turn</span><span>River</span></div>
+        <div class="summary">
+          <div class="stat"><span class="lbl">Piatto</span><b class="num" id="pTot">0</b></div>
+          <div class="stat"><span class="lbl">Puntata da pareggiare</span><b class="num" id="pMax">0</b></div>
+          <div class="stat"><span class="lbl">Rilancio minimo a</span><b class="num" id="pMin">0</b></div>
+        </div>
+        <button class="btn" id="pNextStreet" type="button">Gira la prossima carta</button>
+      </div>
+      <div class="view" id="pPlayers"></div>
+      <div class="card">
+        <span class="lbl">Chi vince il piatto?</span>
+        <div class="view" id="pPots"></div>
+        <button class="btn primary big" id="pAward" type="button">Assegna e passa alla mano successiva</button>
+        <p class="note">Con più vincitori a pari punto il piatto si divide; la fiche avanzata va al primo a sinistra del mazziere. Se qualcuno è all-in con meno fiches, l'app crea i piatti laterali.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= CLASSIFICA ================= -->
+  <section class="view" id="v-classifica" aria-label="Classifica" hidden>
+    <div class="card winner" id="winnerCard" hidden><span class="lbl">Vincitore</span><b id="winnerName"></b><span id="winnerPrize"></span></div>
+    <div class="card">
+      <div class="row"><span class="lbl">Montepremi</span><span class="spacer"></span><b class="num" id="poolTot" style="font:700 24px/1 var(--display)"></b></div>
+      <div class="tablescroll"><table class="tbl" id="prizeTable"></table></div>
+    </div>
+    <div class="card">
+      <span class="lbl">Classifica in diretta</span>
+      <div class="tablescroll"><table class="tbl" id="rankTable"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= CALCOLATORE ================= -->
+  <section class="view" id="v-calc" aria-label="Calcolatore" hidden>
+    <div class="calc-wrap">
+      <div class="card tour">
+        <div class="row"><span class="lbl">Modalità torneo</span><span class="spacer"></span>
+          <label class="lbl" for="tMe" style="display:flex;gap:8px;align-items:center">Io sono
+            <select id="tMe" class="inp" style="height:36px;width:auto;font-size:15px"></select></label></div>
+        <div class="fields">
+          <label class="field"><span class="lbl">Le mie fiches</span><input id="tStack" type="number" inputmode="numeric" min="0" step="1" placeholder="1000"></label>
+          <label class="field"><span class="lbl">Grande buio</span><input id="tBB" type="number" inputmode="numeric" min="0" step="1" placeholder="40"></label>
+        </div>
+        <div class="magic" id="tMagic" hidden>
+          <div><span class="lbl">Numero magico</span><div class="big num" id="tMagicN">25</div></div>
+          <div><div class="ph" id="tPhase">Calma</div><div class="note" id="tPhaseTxt"></div></div>
+          <div class="light" id="tLight" hidden><i></i><span></span></div>
+        </div>
+      </div>
+
+      <section class="settings" aria-label="Impostazioni mano">
+        <div class="stepper">
+          <span class="lbl">Giocatori al tavolo</span>
+          <div class="row"><button type="button" id="nMinus" aria-label="Meno giocatori">−</button><output id="nVal" class="num">6</output><button type="button" id="nPlus" aria-label="Più giocatori">+</button></div>
+        </div>
+        <div class="stepper">
+          <span class="lbl">Avversari in mano</span>
+          <div class="row"><button type="button" id="oMinus" aria-label="Meno avversari">−</button><output id="oVal" class="num">5</output><button type="button" id="oPlus" aria-label="Più avversari">+</button></div>
+        </div>
+      </section>
+
+      <section class="group" aria-label="Posizione">
+        <span class="lbl">La tua posizione</span>
+        <div class="chips" id="posChips"></div>
+      </section>
+
+      <section class="group" id="ctxGroup" aria-label="Azione prima di te">
+        <span class="lbl">Prima di te (pre-flop)</span>
+        <div class="chips" id="ctxChips">
+          <button class="chip" type="button" data-ctx="open">Tutti hanno passato</button>
+          <button class="chip" type="button" data-ctx="limp">Solo limp</button>
+          <button class="chip" type="button" data-ctx="raise">Rilancio</button>
+          <button class="chip" type="button" data-ctx="shove">All-in</button>
+        </div>
+        <div class="group" id="shoverGroup" hidden>
+          <span class="lbl">Chi è andato all-in?</span>
+          <div class="chips" id="shoverChips"></div>
+        </div>
+      </section>
+
+      <section class="table" aria-label="Carte">
+        <div class="slotgroup"><span class="lbl">Tua mano</span><div class="slots" id="heroSlots"></div></div>
+        <div class="slotgroup boardwrap"><span class="lbl">Flop · Turn · River</span><div class="slots" id="boardSlots"></div></div>
+      </section>
+
+      <section class="pad" aria-label="Scegli carta">
+        <div class="ranks" id="ranks"></div>
+        <div class="suits" id="suits"></div>
+        <div class="row"><p class="hint" style="flex:1">Tocca valore e seme. Tocca una carta già messa per cambiarla.</p><button class="btn" id="newhand" type="button">Nuova mano</button></div>
+      </section>
+
+      <section class="verdict" aria-live="polite">
+        <div class="vtop">
+          <div>
+            <span class="lbl" id="streetLbl">Pre-flop</span>
+            <div style="margin-top:6px"><span class="action idle" id="action">Scegli le carte</span></div>
+            <div class="size" id="size"></div>
+          </div>
+          <div class="eq"><small>Probabilità</small><b class="num" id="eqVal">—</b><small id="eqSub"></small></div>
+        </div>
+        <p class="why" id="why">Inserisci le tue due carte per ricevere il consiglio.</p>
+        <div>
+          <div class="meter"><i id="meterFill" style="width:0"></i><span class="fair" id="meterFair" hidden></span><span class="need" id="meterNeed" hidden></span></div>
+          <div class="legend" style="margin-top:6px"><span class="l1">Le tue probabilità</span><span class="l2">Quota equa</span><span class="l3" id="lgNeed" hidden>Probabilità richiesta</span></div>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="made" id="made" hidden></div>
+        <div class="outs" id="outs" hidden></div>
+      </section>
+
+      <section class="card" aria-label="Pot odds">
+        <span class="lbl">Piatto e puntata (facoltativo)</span>
+        <div class="fields">
+          <label class="field"><span class="lbl">Piatto attuale</span><input id="pot" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+          <label class="field"><span class="lbl">Da chiamare</span><input id="call" type="number" inputmode="decimal" min="0" step="any" placeholder="0"></label>
+        </div>
+        <div class="podds" id="podds" hidden></div>
+        <p class="note">Piatto = tutto ciò che c'è al centro, compresa la puntata dell'avversario. Lascia vuoto "Da chiamare" se nessuno ha puntato.</p>
+      </section>
+      <p class="note">Probabilità calcolate contro mani casuali: pre-flop da una tabella di 169 mani × 1–9 avversari, dopo il flop con una simulazione in tempo reale. In modalità torneo (numero magico fino a 20) il consiglio pre-flop è "all-in o fold", dai range di equilibrio calcolati per 2–10 giocatori.</p>
+    </div>
+  </section>
+
+  <!-- ================= IMPOSTAZIONI ================= -->
+  <section class="view" id="v-impostazioni" aria-label="Impostazioni" hidden>
+    <div class="card">
+      <span class="lbl">Giocatori (in ordine di posto, in senso orario)</span>
+      <div class="plist" id="sPlayers"></div>
+      <div class="row"><button class="btn" id="sAddP" type="button">+ Aggiungi giocatore</button><span class="note">Da 2 a 10 giocatori.</span></div>
+    </div>
+    <div class="card">
+      <div class="grid2">
+        <label class="field"><span class="lbl">Fiches iniziali</span><input id="sStart" type="number" inputmode="numeric" min="1" step="1"></label>
+        <label class="field"><span class="lbl">Iscrizione (€)</span><input id="sBuy" type="number" inputmode="decimal" min="0" step="any"></label>
+      </div>
+      <div class="field"><span class="lbl">Premi (% per posizione)</span>
+        <div class="payout" id="sPayout"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row"><span class="lbl">Livelli dei bui</span><span class="spacer"></span>
+        <button class="chip" type="button" id="presetOurs">20/40 → 100/200</button>
+        <button class="chip" type="button" id="presetDouble">Raddoppio</button></div>
+      <div class="levels" id="sLevels"></div>
+      <button class="btn" id="sAddL" type="button">+ Aggiungi livello</button>
+      <p class="note">Dopo l'ultimo livello i bui restano fissi.</p>
+    </div>
+    <div class="card">
+      <span class="lbl">Avvisi e gestione</span>
+      <label class="switch" for="optSound"><span>Suono a 1 minuto dalla fine e al cambio livello</span><input type="checkbox" id="optSound"></label>
+      <label class="switch" for="optVibe"><span>Vibrazione (telefoni Android)</span><input type="checkbox" id="optVibe"></label>
+      <label class="switch" for="optChips"><span>Gestisci fiches e piatto nell'app (i bui si pagano da soli)</span><input type="checkbox" id="optChips"></label>
+    </div>
+    <div class="card">
+      <span class="lbl">Torneo</span>
+      <button class="btn primary big" id="sNew" type="button">Nuovo torneo con queste impostazioni</button>
+      <p class="note">Le modifiche a nomi, livelli, durata e premi valgono subito. Aggiungere o togliere giocatori e cambiare le fiches iniziali richiede un nuovo torneo.</p>
+      <p class="note" id="sDirty" hidden style="color:var(--call)">Hai cambiato giocatori o fiches iniziali: premi "Nuovo torneo" per applicarli.</p>
+    </div>
+  </section>
+</main>
+
+<nav class="nav" aria-label="Sezioni">
+  <button type="button" data-view="tavolo" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/></svg>Tavolo</button>
+  <button type="button" data-view="piatto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="7" rx="7" ry="3"/><path d="M5 7v5c0 1.7 3.1 3 7 3s7-1.3 7-3V7"/><path d="M5 12v5c0 1.7 3.1 3 7 3s7-1.3 7-3v-5"/></svg>Piatto</button>
+  <button type="button" data-view="classifica"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/></svg>Classifica</button>
+  <button type="button" data-view="calc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="3" width="11" height="15" rx="2"/><path d="M9 21h9a2 2 0 0 0 2-2V8"/><path d="M9.5 8.5l-2 3h4l-2 3"/></svg>Carte</button>
+  <button type="button" data-view="impostazioni"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Impostazioni</button>
+</nav>
+
+<div id="bannerHost"></div>
+<div id="sheetHost"></div>
