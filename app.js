@@ -407,6 +407,10 @@ var TP = (function () {
       };
     });
     Array.prototype.forEach.call(lv.querySelectorAll('[data-ldel]'), function (b) { b.onclick = function () { st.cfg.levels.splice(+b.dataset.ldel, 1); if (st.timer.level >= st.cfg.levels.length) st.timer.level = st.cfg.levels.length - 1; save(); renderAll(); }; });
+    var sig = JSON.stringify(st.cfg.levels);
+    $('presetOurs').setAttribute('aria-pressed', sig === JSON.stringify(DL.PRESET_LEVELS));
+    $('preset50').setAttribute('aria-pressed', sig === JSON.stringify(DL.PRESET_50));
+    $('presetDouble').setAttribute('aria-pressed', sig === JSON.stringify([[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]));
     $('optSound').checked = !!st.cfg.sound; $('optVibe').checked = !!st.cfg.vibe; $('optChips').checked = !!st.cfg.trackChips;
     $('sDirty').hidden = !draft.dirty;
   }
@@ -415,7 +419,9 @@ var TP = (function () {
   $('sBuy').onchange = function () { st.cfg.buyIn = Math.max(0, +String($('sBuy').value).replace(',', '.') || 0); save(); renderAll(); };
   $('sAddL').onclick = function () { var L = st.cfg.levels, l = L[L.length - 1]; L.push([l[0] + (L.length > 1 ? l[0] - L[L.length - 2][0] : l[0]), l[1] + (L.length > 1 ? l[1] - L[L.length - 2][1] : l[1])]); save(); renderAll(); };
   $('presetOurs').onclick = function () { st.cfg.levels = DL.PRESET_LEVELS.map(function (l) { return l.slice(); }); st.timer.level = Math.min(st.timer.level, 4); save(); renderAll(); };
-  $('presetDouble').onclick = function () { st.cfg.levels = [[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]; save(); renderAll(); };
+  $('presetDouble').onclick = function () { st.cfg.levels = [[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]; st.timer.level = Math.min(st.timer.level, 4); save(); renderAll(); };
+  // Variante "+50": piccolo buio +50 a ogni livello, grande buio = doppio, fino a 1500/3000 (30 livelli)
+  $('preset50').onclick = function () { st.cfg.levels = DL.PRESET_50.map(function (l) { return l.slice(); }); st.timer.level = Math.min(st.timer.level, st.cfg.levels.length - 1); save(); renderAll(); };
   $('optSound').onchange = function () { st.cfg.sound = $('optSound').checked; audio(); save(); };
   $('optVibe').onchange = function () { st.cfg.vibe = $('optVibe').checked; save(); };
   $('optChips').onchange = function () { st.cfg.trackChips = $('optChips').checked; if (!st.cfg.trackChips && st.hand) { /* return chips in the pot to their owners */ for (var k in st.hand.bets) { st.players.forEach(function (p) { if (p.id === +k) p.stack += st.hand.bets[k].total; }); st.hand.bets[k].total = 0; st.hand.bets[k].street = 0; } } save(); renderAll(); };

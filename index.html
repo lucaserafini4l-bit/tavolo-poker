@@ -497,6 +497,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 14px 16px calc(var(--navh) + 
     <div class="card">
       <div class="row"><span class="lbl">Livelli dei bui</span><span class="spacer"></span>
         <button class="chip" type="button" id="presetOurs">20/40 → 100/200</button>
+        <button class="chip" type="button" id="preset50">50/100 → 1500/3000</button>
         <button class="chip" type="button" id="presetDouble">Raddoppio</button></div>
       <div class="levels" id="sLevels"></div>
       <button class="btn" id="sAddL" type="button">+ Aggiungi livello</button>
@@ -841,6 +842,7 @@ var NASH = {"S":[2,3,4,5,6,7,8,9,10,12,14,16,18,20],"keys":["AA","AKs","AKo","AQ
 // Tournament / dealer logic. Pure functions on a plain JSON state (easy to save and undo).
 var DL = (function () {
   var PRESET_LEVELS = [[20, 40], [40, 80], [60, 120], [80, 160], [100, 200]];
+  var PRESET_50 = []; for (var q = 1; q <= 30; q++) PRESET_50.push([50 * q, 100 * q]);
 
   function defaultPayout(n) {
     if (n <= 4) return [100];
@@ -1064,7 +1066,7 @@ var DL = (function () {
     return pay.map(function (pct, i) { return { place: i + 1, pct: pct, amount: sum ? Math.round(pool * pct / sum * 100) / 100 : 0 }; });
   }
 
-  return { PRESET_LEVELS: PRESET_LEVELS, defaultPayout: defaultPayout, newTournament: newTournament, alive: alive, nextAlive: nextAlive,
+  return { PRESET_LEVELS: PRESET_LEVELS, PRESET_50: PRESET_50, defaultPayout: defaultPayout, newTournament: newTournament, alive: alive, nextAlive: nextAlive,
     seats: seats, positionNames: positionNames, posLabels: posLabels, levelBlinds: levelBlinds, timerNow: timerNow, timerStart: timerStart,
     timerPause: timerPause, timerSetLevel: timerSetLevel, timerReset: timerReset, startHand: startHand, act: act, nextStreet: nextStreet,
     pots: pots, potTotal: potTotal, award: award, setStack: setStack, revive: revive, totals: totals, prizes: prizes,
@@ -1483,6 +1485,10 @@ var TP = (function () {
       };
     });
     Array.prototype.forEach.call(lv.querySelectorAll('[data-ldel]'), function (b) { b.onclick = function () { st.cfg.levels.splice(+b.dataset.ldel, 1); if (st.timer.level >= st.cfg.levels.length) st.timer.level = st.cfg.levels.length - 1; save(); renderAll(); }; });
+    var sig = JSON.stringify(st.cfg.levels);
+    $('presetOurs').setAttribute('aria-pressed', sig === JSON.stringify(DL.PRESET_LEVELS));
+    $('preset50').setAttribute('aria-pressed', sig === JSON.stringify(DL.PRESET_50));
+    $('presetDouble').setAttribute('aria-pressed', sig === JSON.stringify([[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]));
     $('optSound').checked = !!st.cfg.sound; $('optVibe').checked = !!st.cfg.vibe; $('optChips').checked = !!st.cfg.trackChips;
     $('sDirty').hidden = !draft.dirty;
   }
@@ -1491,7 +1497,9 @@ var TP = (function () {
   $('sBuy').onchange = function () { st.cfg.buyIn = Math.max(0, +String($('sBuy').value).replace(',', '.') || 0); save(); renderAll(); };
   $('sAddL').onclick = function () { var L = st.cfg.levels, l = L[L.length - 1]; L.push([l[0] + (L.length > 1 ? l[0] - L[L.length - 2][0] : l[0]), l[1] + (L.length > 1 ? l[1] - L[L.length - 2][1] : l[1])]); save(); renderAll(); };
   $('presetOurs').onclick = function () { st.cfg.levels = DL.PRESET_LEVELS.map(function (l) { return l.slice(); }); st.timer.level = Math.min(st.timer.level, 4); save(); renderAll(); };
-  $('presetDouble').onclick = function () { st.cfg.levels = [[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]; save(); renderAll(); };
+  $('presetDouble').onclick = function () { st.cfg.levels = [[20, 40], [40, 80], [80, 160], [160, 320], [320, 640]]; st.timer.level = Math.min(st.timer.level, 4); save(); renderAll(); };
+  // Variante "+50": piccolo buio +50 a ogni livello, grande buio = doppio, fino a 1500/3000 (30 livelli)
+  $('preset50').onclick = function () { st.cfg.levels = DL.PRESET_50.map(function (l) { return l.slice(); }); st.timer.level = Math.min(st.timer.level, st.cfg.levels.length - 1); save(); renderAll(); };
   $('optSound').onchange = function () { st.cfg.sound = $('optSound').checked; audio(); save(); };
   $('optVibe').onchange = function () { st.cfg.vibe = $('optVibe').checked; save(); };
   $('optChips').onchange = function () { st.cfg.trackChips = $('optChips').checked; if (!st.cfg.trackChips && st.hand) { /* return chips in the pot to their owners */ for (var k in st.hand.bets) { st.players.forEach(function (p) { if (p.id === +k) p.stack += st.hand.bets[k].total; }); st.hand.bets[k].total = 0; st.hand.bets[k].street = 0; } } save(); renderAll(); };

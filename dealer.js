@@ -1,6 +1,7 @@
 // Tournament / dealer logic. Pure functions on a plain JSON state (easy to save and undo).
 var DL = (function () {
   var PRESET_LEVELS = [[20, 40], [40, 80], [60, 120], [80, 160], [100, 200]];
+  var PRESET_50 = []; for (var q = 1; q <= 30; q++) PRESET_50.push([50 * q, 100 * q]);
 
   function defaultPayout(n) {
     if (n <= 4) return [100];
@@ -224,7 +225,7 @@ var DL = (function () {
     return pay.map(function (pct, i) { return { place: i + 1, pct: pct, amount: sum ? Math.round(pool * pct / sum * 100) / 100 : 0 }; });
   }
 
-  return { PRESET_LEVELS: PRESET_LEVELS, defaultPayout: defaultPayout, newTournament: newTournament, alive: alive, nextAlive: nextAlive,
+  return { PRESET_LEVELS: PRESET_LEVELS, PRESET_50: PRESET_50, defaultPayout: defaultPayout, newTournament: newTournament, alive: alive, nextAlive: nextAlive,
     seats: seats, positionNames: positionNames, posLabels: posLabels, levelBlinds: levelBlinds, timerNow: timerNow, timerStart: timerStart,
     timerPause: timerPause, timerSetLevel: timerSetLevel, timerReset: timerReset, startHand: startHand, act: act, nextStreet: nextStreet,
     pots: pots, potTotal: potTotal, award: award, setStack: setStack, revive: revive, totals: totals, prizes: prizes,
