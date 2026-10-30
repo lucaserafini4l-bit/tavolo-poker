@@ -55,6 +55,20 @@ async function playHand(st, deck) {
         assert.strictEqual(d.piatto, DL.potTotal(st), 'piatto');
         assert.ok(!('motivo' in d), 'il motivo non deve uscire durante la mano');
         stats.decisioni++; stats[d.azione]++;
+        if (process.env.CONSIGLIERE) {
+          // il consigliere riceve solo quello che un giocatore vede e digita (stili "non so")
+          const order = []; { const sx = DL.seats(st); let q = sx.firstPre; while (order.length < DL.alive(st).length) { order.push(q); q = DL.nextAlive(st, q); } }
+          const nr = (h.acts || []).filter(a => a.s === h.street && a.up).length;
+          const x = { carte: hole[i], tavolo: (h.board && h.board.length ? h.board : board.slice(0, [0, 3, 4, 5][street])), giocatori: DL.alive(st).length,
+            posizione: order.indexOf(i), bb: h.bb, sb: h.sb, stack: p.stack, piatto: DL.potTotal(st), da_chiamare: tc, gia_puntato: b.street,
+            avversari: DL.inHand(st).length - 1, rilanci: Math.min(nr, 3), fiche: 25, parametri: process.env.PARAMETRI || 'auto' };
+          const c1 = await api('/api/consiglio', x), c2 = await api('/api/consiglio', x);
+          const cat = a => a === 'allin' ? 'raise' : a;           // all-in conta come rilancio
+          stats.cons = stats.cons || { n: 0, uguali: 0, uguali_cat: 0, stesso_due_volte: 0, diff: {} };
+          stats.cons.n++; if (c1.azione === d.azione) stats.cons.uguali++; if (cat(c1.azione) === cat(d.azione)) stats.cons.uguali_cat++;
+          if (c1.azione === c2.azione) stats.cons.stesso_due_volte++;
+          if (cat(c1.azione) !== cat(d.azione)) { const k = d.azione + '->' + c1.azione + (h.street ? ' postflop' : ' preflop'); stats.cons.diff[k] = (stats.cons.diff[k] || 0) + 1; }
+        }
         if (d.azione === 'raise') {
           assert.ok(d.a >= DL.minRaiseTo(st), `rilancio sotto il minimo: ${d.a} < ${DL.minRaiseTo(st)}`);
           assert.ok(d.a < p.stack + b.street, 'rilancio oltre lo stack');
@@ -94,6 +108,7 @@ async function playHand(st, deck) {
   }
   const ms = stats.ms.sort((a, b) => a - b);
   console.log('controlli incrociati del cambio fase:', stats.controlli);
+  if (stats.cons) console.log('CONSIGLIERE vs SISTEMA:', JSON.stringify(stats.cons));
   console.log(JSON.stringify({ tornei: stats.tornei, mani: stats.mani, decisioni: stats.decisioni, fold: stats.fold, call: stats.call, raise: stats.raise, allin: stats.allin,
     vinti: stats.vinti, posto_medio: (stats.posti.reduce((a, b) => a + b, 0) / stats.posti.length).toFixed(2),
     tempo_decisione_ms: { mediana: ms[ms.length >> 1], p95: ms[Math.floor(ms.length * 0.95)] }, errori: stats.errori.length }));
