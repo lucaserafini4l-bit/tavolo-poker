@@ -257,3 +257,32 @@ main { max-width: 1100px; margin: 0 auto; padding: 14px 16px calc(var(--navh) + 
 .tablewrap.many .dbtn { width: 24px; height: 24px; line-height: 24px; font-size: 12px; }
 .brand { white-space: nowrap; }
 @media (max-width: 380px) { .brand { font-size: 17px; } .topinfo { gap: 6px; font-size: 15px; } }
+
+/* ---------- inserimento rapido (rapida.js) ---------- */
+.qturn { border-color: var(--brass); }
+.qname { font: 700 30px/1.1 var(--display); letter-spacing: .02em; }
+.qname small { font-size: 16px; color: var(--brass); }
+.qacts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.qacts .btn { min-height: 64px; font-size: 20px; }
+.qacts .qfold { color: var(--fold); } .qacts .qcall { color: var(--raise); } .qacts .qraise { color: var(--brass); } .qacts .qallin { color: var(--call); }
+.qpre { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.qpre .btn { min-height: 58px; display: grid; gap: 4px; place-items: center; align-content: center; }
+.qpre .btn b { font-size: 20px; color: var(--ink); }
+.qchips { display: flex; flex-wrap: wrap; gap: 8px; }
+.qchip { width: 64px; height: 64px; border-radius: 50%; border: 4px dashed rgba(255,255,255,.55); background: #2c6e49; font: 700 16px/1 var(--display); }
+.qchip[data-add="25"] { background: #2c6e49; } .qchip[data-add="50"] { background: #2464b6; } .qchip[data-add="100"] { background: #1c2320; }
+.qchip[data-add="500"] { background: #7a3aa8; } .qchip[data-add="1000"] { background: #c98a1b; color: #1b1508; }
+.qchip.zero { background: var(--rail-2); border-style: solid; border-color: var(--line); font-size: 13px; }
+.qcustom { font: 700 30px/1 var(--display); }
+.qboard { display: flex; gap: 8px; }
+.qcard { width: 46px; height: 62px; border-radius: 8px; background: var(--card); display: grid; place-items: center; font: 700 19px/1 var(--display); }
+.qcard.empty { background: transparent; border: 1.5px dashed var(--line); color: var(--muted); }
+.qgrid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 3px; }
+.qg { aspect-ratio: 3 / 4; border-radius: 6px; border: 1px solid var(--card-edge); background: var(--card); font: 700 15px/1 var(--display); display: grid; place-items: center; align-content: center; gap: 1px; padding: 0; }
+.qg small { font-size: 13px; }
+.qg.on { outline: 3px solid var(--brass); outline-offset: -2px; opacity: .55; }
+@media (max-width: 520px) { .qgrid { grid-template-columns: repeat(7, 1fr); } }
+.qothers { display: flex; flex-wrap: wrap; gap: 6px; }
+.qo { border: 1px solid var(--line); border-radius: 999px; padding: 6px 10px; font: 600 13px/1 var(--display); background: var(--rail); }
+.qo.now { border-color: var(--brass); color: var(--brass); } .qo.f { opacity: .45; }
+.btn.qsmall { min-height: 34px; font-size: 12px; opacity: .7; }

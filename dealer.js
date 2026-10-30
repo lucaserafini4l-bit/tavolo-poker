@@ -98,7 +98,7 @@ var DL = (function () {
     st.handNo++;
     var b = levelBlinds(st), s = seats(st);
     var h = { no: st.handNo, sb: b.sb, bb: b.bb, street: 0, bets: {}, toAct: s.firstPre, lastRaise: b.bb, startStacks: {}, done: false,
-      dealer: s.dealer, sbSeat: s.sb, bbSeat: s.bb, acts: [] };
+      dealer: s.dealer, sbSeat: s.sb, bbSeat: s.bb, acts: [], board: [] };
     alive(st).forEach(function (p) { h.bets[p.id] = { street: 0, total: 0, folded: false, allin: false }; h.startStacks[p.id] = p.stack; });
     st.hand = h;
     if (st.cfg.trackChips) { put(st, s.sb, b.sb); put(st, s.bb, b.bb); }
@@ -158,6 +158,27 @@ var DL = (function () {
     if (p.out || !b || b.folded || b.allin) advance(st, first); else h.toAct = first;
     return st;
   }
+
+  // Il giro di puntate e' finito? Si' se resta un solo giocatore, oppure se tutti quelli che possono
+  // ancora puntare hanno parlato dopo l'ultimo rilancio e hanno pareggiato la puntata.
+  function roundComplete(st) {
+    var h = st.hand; if (!h || h.done) return true;
+    if (inHand(st).length <= 1) return true;
+    var max = maxStreet(st), acts = (h.acts || []).filter(function (a) { return a.s === h.street; });
+    var lastUp = -1; acts.forEach(function (a, k) { if (a.up) lastUp = k; });
+    var live = st.players.map(function (p, i) { return i; }).filter(function (i) {
+      var p = st.players[i], b = h.bets[p.id]; return !p.out && b && !b.folded && !b.allin; });
+    if (live.length === 0) return true;
+    // uno solo puo' ancora puntare (gli altri sono all-in): deve solo pareggiare, se serve
+    if (live.length === 1) return h.bets[st.players[live[0]].id].street >= max;
+    return live.every(function (i) {
+      var b = h.bets[st.players[i].id];
+      if (b.street < max) return false;
+      for (var k = Math.max(0, lastUp); k < acts.length; k++) if (acts[k].i === i) return true;
+      return false;
+    });
+  }
+  function cardsNeeded(st) { var h = st.hand; return h ? [0, 3, 4, 5][h.street] : 0; }
 
   // Main pot + side pots from total contributions. Folded players' chips stay in, but they can't win.
   function pots(st) {
@@ -240,6 +261,6 @@ var DL = (function () {
     seats: seats, positionNames: positionNames, posLabels: posLabels, levelBlinds: levelBlinds, timerNow: timerNow, timerStart: timerStart,
     timerPause: timerPause, timerSetLevel: timerSetLevel, timerReset: timerReset, startHand: startHand, act: act, nextStreet: nextStreet,
     pots: pots, potTotal: potTotal, award: award, setStack: setStack, revive: revive, totals: totals, prizes: prizes,
-    maxStreet: maxStreet, toCall: toCall, minRaiseTo: minRaiseTo, inHand: inHand };
+    maxStreet: maxStreet, toCall: toCall, minRaiseTo: minRaiseTo, inHand: inHand, roundComplete: roundComplete, cardsNeeded: cardsNeeded };
 })();
 if (typeof module !== 'undefined') module.exports = DL;

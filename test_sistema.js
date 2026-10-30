@@ -17,6 +17,7 @@ function roundOver(st, actedSince) {
   const live = st.players.map((p, i) => i).filter(i => { const b = h.bets[st.players[i].id]; return b && !b.folded && !b.allin; });
   const inHand = DL.inHand(st);
   if (inHand.length <= 1) return true;
+  if (live.length === 1) return h.bets[st.players[live[0]].id].street >= max;   // nessuno contro cui puntare
   return live.every(i => actedSince.has(i) && h.bets[st.players[i].id].street === max);
 }
 function botMove(st, i) {             // giocatori finti: semplici ma imprevedibili
@@ -34,9 +35,16 @@ async function playHand(st, deck) {
   if (hole[JEV]) assert.ok((await api('/api/carte', { carte: hole[JEV] })).ok);
   for (let street = 0; street < 4; street++) {
     if (street > 0) { DL.nextStreet(st); }
-    await api('/api/board', { carte: board.slice(0, [0, 3, 4, 5][street]) });
+    // carte in tavola: nelle mani pari dalla griglia del dealer, nelle dispari dal telefono del Sistema
+    if (h.no % 2 === 0) h.board = board.slice(0, [0, 3, 4, 5][street]);
+    else await api('/api/board', { carte: board.slice(0, [0, 3, 4, 5][street]) });
     const acted = new Set(); let guard = 0;
-    while (!roundOver(st, acted) && h.toAct != null && guard++ < 200) {
+    while (true) {
+      const mine = roundOver(st, acted), theirs = DL.roundComplete(st);
+      // controllo incrociato: la logica del cambio fase automatico deve coincidere con questa, indipendente
+      assert.strictEqual(theirs, mine, `roundComplete diverso (mano ${h.no}, fase ${street}): app ${theirs}, banco ${mine}`);
+      stats.controlli = (stats.controlli || 0) + 1;
+      if (mine || h.toAct == null || guard++ >= 200) break;
       const i = h.toAct, before = DL.maxStreet(st);
       await api('/api/stato', { st });
       if (i === JEV) {
@@ -85,6 +93,7 @@ async function playHand(st, deck) {
     console.log(`torneo ${t + 1}: ${hands} mani, Sistema ${place}°, letture registrate: ${(await api('/api/sistema')).letture.length}`);
   }
   const ms = stats.ms.sort((a, b) => a - b);
+  console.log('controlli incrociati del cambio fase:', stats.controlli);
   console.log(JSON.stringify({ tornei: stats.tornei, mani: stats.mani, decisioni: stats.decisioni, fold: stats.fold, call: stats.call, raise: stats.raise, allin: stats.allin,
     vinti: stats.vinti, posto_medio: (stats.posti.reduce((a, b) => a + b, 0) / stats.posti.length).toFixed(2),
     tempo_decisione_ms: { mediana: ms[ms.length >> 1], p95: ms[Math.floor(ms.length * 0.95)] }, errori: stats.errori.length }));

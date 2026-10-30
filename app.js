@@ -453,5 +453,11 @@ var TP = (function () {
   return { get state() { return st; }, onChange: function (f) { listeners.push(f); }, show: show,
     // usati dal collegamento al Sistema Jev (sistema-link.js)
     update: function (fn) { snapshot(); fn(st); save(); renderAll(); },
-    act: function (i, type, to) { snapshot(); DL.act(st, i, type, to); raiseOpen = null; save(); renderAll(); } };
+    act: function (i, type, to) {
+      snapshot(); DL.act(st, i, type, to); raiseOpen = null;
+      // inserimento rapido: a giro di puntate finito si passa da soli alla fase successiva
+      // (anche piu' fasi di fila se restano solo giocatori all-in); un solo Annulla torna indietro
+      if (st.cfg.quick !== false) while (st.hand && !st.hand.done && st.hand.street < 3 && DL.roundComplete(st)) DL.nextStreet(st);
+      save(); renderAll();
+    } };
 })();

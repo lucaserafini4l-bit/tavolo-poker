@@ -2,7 +2,13 @@
 // (http://IP:8765/). Su GitHub Pages resta spento e l'app funziona come sempre.
 var SJ = (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var on = false, timer = null, lastDec = null;
+  var on = false, timer = null, lastDec = null, applied = null;
+  function toast(msg) {
+    var host = $('bannerHost'); if (!host) return;
+    host.innerHTML = '<div class="banner up" role="status"><span>' + esc(msg) + '</span><button type="button">Ok</button></div>';
+    var el = host.firstChild; el.querySelector('button').onclick = function () { host.innerHTML = ''; };
+    setTimeout(function () { if (host.firstChild === el) host.innerHTML = ''; }, 4000);
+  }
   if (typeof location === 'undefined' || location.protocol !== 'http:') return { active: false };
 
   function api(path, body) {
@@ -27,8 +33,10 @@ var SJ = (function () {
     c.innerHTML = '<h2 style="margin:0 0 6px">Sistema Jev</h2>' +
       '<p class="note">Collegato al portatile. Scegli il posto in cui gioca il Sistema: la sua decisione comparirà nella sezione Piatto quando tocca a lui.</p>' +
       '<label class="field"><span class="lbl">Posto del Sistema</span><select id="sjSeat">' + opts + '</select></label>' +
+      '<label class="switch" for="sjAuto"><span>Registra da solo l\'azione del Sistema (il dealer controlla solo che le fiches siano state messe; Annulla sempre disponibile)</span><input type="checkbox" id="sjAuto"' + (TP.state.cfg.jevAuto ? ' checked' : '') + '></label>' +
       '<p class="note">Sul telefono del Sistema apri <b>' + esc(location.host) + '/sistema</b> per fotografare le sue carte.</p>';
     $('sjSeat').onchange = function () { var v = $('sjSeat').value; TP.update(function (st) { st.cfg.jevSeat = v === '' ? null : +v; }); };
+    $('sjAuto').onchange = function () { var v = $('sjAuto').checked; TP.update(function (st) { st.cfg.jevAuto = v; }); };
   }
 
   // ---------- piatto: decisione del Sistema
@@ -59,7 +67,17 @@ var SJ = (function () {
   function poll() {
     var s = seat(), h = TP.state.hand;
     if (s === null || !h || h.toAct !== s || h.done) { renderPanel(s === null || !h ? null : { stato: 'attesa', testo: h && h.toAct != null ? 'Tocca a ' + TP.state.players[h.toAct].name : 'In attesa' }); return; }
-    api('/api/decisione').then(function (d) { lastDec = d; renderPanel(d); }).catch(function () { renderPanel({ stato: 'errore', testo: 'Server del Sistema non raggiungibile' }); });
+    api('/api/decisione').then(function (d) {
+      lastDec = d; renderPanel(d);
+      // registrazione automatica: una sola volta per ogni decisione (mano, fase, numero di azioni)
+      var key = h.no + '/' + h.street + '/' + (h.acts || []).length;
+      if (TP.state.cfg.jevAuto && d.stato === 'decisione' && applied !== key && TP.state.hand === h && h.toAct === s) {
+        applied = key;
+        var t = d.azione === 'raise' ? 'raise' : d.azione === 'allin' ? 'allin' : d.azione === 'fold' ? 'fold' : 'call';
+        TP.act(s, t, d.a);
+        toast('Sistema: ' + d.testo + ' (registrato)');
+      }
+    }).catch(function () { renderPanel({ stato: 'errore', testo: 'Server del Sistema non raggiungibile' }); });
   }
 
   api('/api/ping').then(function (r) {

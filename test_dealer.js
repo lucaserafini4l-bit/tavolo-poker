@@ -44,3 +44,17 @@ let q=DL.newTournament({names:['A','B','C'],startStack:1000});q.players[0].stack
 DL.act(q,0,'raise',200);q.players[1].stack=230-20;DL.act(q,1,'allin');// sb mette in tutto 230: rilancio di 30 < 160
 assert.strictEqual(q.hand.acts[1].up,true);assert.strictEqual(q.hand.acts[1].full,false);
 console.log('ALL OK');
+// ---- giro di puntate finito (inserimento rapido)
+let g=DL.newTournament({names:['A','B','C','D']});DL.startHand(g);// btn0 sb1 bb2, primo 3
+assert.strictEqual(DL.roundComplete(g),false);
+DL.act(g,3,'call');DL.act(g,0,'call');DL.act(g,1,'call');
+assert.strictEqual(DL.roundComplete(g),false,'il grande buio deve ancora parlare');
+DL.act(g,2,'call');assert.strictEqual(DL.roundComplete(g),true,'tutti hanno pareggiato e parlato');
+DL.nextStreet(g);assert.strictEqual(DL.roundComplete(g),false);assert.strictEqual(DL.cardsNeeded(g),3);
+DL.act(g,1,'call');DL.act(g,2,'raise',80);assert.strictEqual(DL.roundComplete(g),false);
+DL.act(g,3,'call');DL.act(g,0,'fold');DL.act(g,1,'call');assert.strictEqual(DL.roundComplete(g),true,'dopo il rilancio tutti hanno risposto');
+// tutti all-in tranne uno che ha gia' pareggiato: giro finito
+let a2=DL.newTournament({names:['A','B','C']});DL.startHand(a2);DL.act(a2,0,'allin');DL.act(a2,1,'fold');
+assert.strictEqual(DL.roundComplete(a2),false);DL.act(a2,2,'call');assert.strictEqual(DL.roundComplete(a2),true);
+DL.nextStreet(a2);assert.strictEqual(DL.roundComplete(a2),true,'nessuno puo\' piu\' puntare');
+console.log('ROUND OK');

@@ -14,6 +14,8 @@ Il sito pubblicato è il file `index.html` nella cartella principale, costruito 
 | `matrix.json` | Matrice delle probabilità 169 × 169 tra mani |
 | `nash.json` | Range all-in/fold per 2–10 giocatori e 2–20 grandi bui (generati con `gen_nash.js`) |
 | `test_dealer.js` | Test della logica del dealer (`node test_dealer.js`) |
+| `rapida.js` | Inserimento rapido nel Piatto: giocatore di turno in grande, rilanci pronti e fiches, griglia di 52 carte, cambio fase automatico (si spegne in Impostazioni) |
+| `test_rapida_browser.js`, `test_auto_browser.js` | Test nel browser (Playwright) dell'inserimento rapido e della registrazione automatica del Sistema |
 | `sistema-link.js` | Collegamento al Sistema Jev: attivo solo quando l'app è aperta dal server sul portatile (http), spento su GitHub Pages |
 | `test_sistema.js` | Banco di prova app + Sistema Jev: tornei completi con il server acceso (`node test_sistema.js 10`) |
 
