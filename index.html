@@ -938,7 +938,8 @@ var DL = (function () {
     else if (st.players[st.button].out) st.button = nextAlive(st, st.button);
     st.handNo++;
     var b = levelBlinds(st), s = seats(st);
-    var h = { no: st.handNo, sb: b.sb, bb: b.bb, street: 0, bets: {}, toAct: s.firstPre, lastRaise: b.bb, startStacks: {}, done: false };
+    var h = { no: st.handNo, sb: b.sb, bb: b.bb, street: 0, bets: {}, toAct: s.firstPre, lastRaise: b.bb, startStacks: {}, done: false,
+      dealer: s.dealer, sbSeat: s.sb, bbSeat: s.bb, acts: [] };
     alive(st).forEach(function (p) { h.bets[p.id] = { street: 0, total: 0, folded: false, allin: false }; h.startStacks[p.id] = p.stack; });
     st.hand = h;
     if (st.cfg.trackChips) { put(st, s.sb, b.sb); put(st, s.bb, b.bb); }
@@ -970,13 +971,20 @@ var DL = (function () {
   function act(st, i, type, to) {
     var h = st.hand, p = st.players[i], b = h.bets[p.id];
     if (!h || !b || b.folded) return st;
-    var before = maxStreet(st);
+    var before = maxStreet(st), tc = Math.min(p.stack, before - b.street), stBefore = b.street, lastBefore = h.lastRaise;
+    var nr = 0; (h.acts || []).forEach(function (a) { if (a.s === h.street && a.up) nr++; });
+    var added = 0;
     if (type === 'fold') b.folded = true;
-    else if (type === 'call') put(st, i, before - b.street);
-    else if (type === 'raise') { put(st, i, Math.max(0, to - b.street)); }
-    else if (type === 'allin') put(st, i, p.stack);
+    else if (type === 'call') added = put(st, i, before - b.street);
+    else if (type === 'raise') { added = put(st, i, Math.max(0, to - b.street)); }
+    else if (type === 'allin') added = put(st, i, p.stack);
     var after = maxStreet(st);
     if (after > before) h.lastRaise = Math.max(h.lastRaise, after - before);
+    // registro delle azioni (statistiche degli avversari per il Sistema Jev): s fase, t tipo, tc da chiamare,
+    // nr rilanci gia' fatti nella fase, up = ha alzato la puntata, full = rilancio completo (>= rilancio minimo)
+    if (!h.acts) h.acts = [];
+    h.acts.push({ i: i, s: h.street, t: type, tc: tc, nr: nr, amt: added, to: b.street, from: stBefore,
+      up: after > before, full: after - before >= lastBefore });
     advance(st, i);
     if (inHand(st).length === 1) h.done = true;
     return st;
@@ -1028,6 +1036,9 @@ var DL = (function () {
       w.forEach(function (id, j) { st.players[byId[id]].stack += share + (j < rest ? 1 : 0); });
     });
     st.log.push({ hand: h.no, pots: ps.map(function (p, k) { return { amount: p.amount, winners: winners[k] || p.eligible }; }) });
+    // archivio compatto delle mani finite (per le statistiche del Sistema Jev)
+    if (!st.hands) st.hands = [];
+    st.hands.push({ no: h.no, sb: h.sb, bb: h.bb, dealer: h.dealer, players: Object.keys(h.bets).map(Number), acts: h.acts || [] });
     st.hand = null;
     return eliminate(st, h.startStacks);
   }
@@ -1528,7 +1539,10 @@ var TP = (function () {
   setInterval(tick, 250);
   if (st.timer.running) wake(true);
 
-  return { get state() { return st; }, onChange: function (f) { listeners.push(f); }, show: show };
+  return { get state() { return st; }, onChange: function (f) { listeners.push(f); }, show: show,
+    // usati dal collegamento al Sistema Jev (sistema-link.js)
+    update: function (fn) { snapshot(); fn(st); save(); renderAll(); },
+    act: function (i, type, to) { snapshot(); DL.act(st, i, type, to); raiseOpen = null; save(); renderAll(); } };
 })();
 
 </script>
@@ -1841,6 +1855,81 @@ var CALC = (function () {
   buildSlots(); buildPad(); renderAll();
   S.cards[0] = 12 * 4 + 1; S.cards[1] = 11 * 4 + 1; S.active = 2; renderAll(); compute();
   return { syncFromTable: syncFromTable };
+})();
+
+</script>
+<script>
+// Collegamento al Sistema Jev. Si attiva SOLO quando l'app e' aperta dal server sul portatile
+// (http://IP:8765/). Su GitHub Pages resta spento e l'app funziona come sempre.
+var SJ = (function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var on = false, timer = null, lastDec = null;
+  if (typeof location === 'undefined' || location.protocol !== 'http:') return { active: false };
+
+  function api(path, body) {
+    return fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}).then(function (r) { return r.json(); });
+  }
+  function seat() { var s = TP.state.cfg.jevSeat; return s === undefined || s === null || s === '' ? null : +s; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  function push() { clearTimeout(timer); timer = setTimeout(function () { api('/api/stato', { st: TP.state }).catch(function () {}); }, 150); }
+
+  // ---------- impostazioni: scelta del posto del Sistema
+  function settingsCard() {
+    var host = $('v-impostazioni'); if (!host || $('sjCard')) return;
+    var c = document.createElement('section'); c.className = 'card'; c.id = 'sjCard';
+    host.insertBefore(c, host.firstChild);
+    renderSettings();
+  }
+  function renderSettings() {
+    var c = $('sjCard'); if (!c) return;
+    var s = seat(), opts = '<option value="">Nessuno</option>';
+    TP.state.players.forEach(function (p, i) { opts += '<option value="' + i + '"' + (s === i ? ' selected' : '') + '>' + esc(p.name) + '</option>'; });
+    c.innerHTML = '<h2 style="margin:0 0 6px">Sistema Jev</h2>' +
+      '<p class="note">Collegato al portatile. Scegli il posto in cui gioca il Sistema: la sua decisione comparirà nella sezione Piatto quando tocca a lui.</p>' +
+      '<label class="field"><span class="lbl">Posto del Sistema</span><select id="sjSeat">' + opts + '</select></label>' +
+      '<p class="note">Sul telefono del Sistema apri <b>' + esc(location.host) + '/sistema</b> per fotografare le sue carte.</p>';
+    $('sjSeat').onchange = function () { var v = $('sjSeat').value; TP.update(function (st) { st.cfg.jevSeat = v === '' ? null : +v; }); };
+  }
+
+  // ---------- piatto: decisione del Sistema
+  function panel() {
+    var host = $('potHand'); if (!host) return null;
+    var p = $('sjPanel');
+    if (!p) { p = document.createElement('div'); p.id = 'sjPanel'; p.className = 'card'; p.style.borderColor = 'var(--brass)'; host.insertBefore(p, host.firstChild); }
+    return p;
+  }
+  function renderPanel(d) {
+    var s = seat(), h = TP.state.hand, p = panel(); if (!p) return;
+    if (s === null || !h) { p.hidden = true; return; }
+    p.hidden = false;
+    var name = esc(TP.state.players[s].name);
+    if (!d || d.stato !== 'decisione') {
+      p.innerHTML = '<span class="lbl">Sistema Jev · ' + name + '</span><div class="note" style="margin-top:6px">' + esc((d && d.testo) || 'In attesa') + '</div>';
+      return;
+    }
+    var col = d.azione === 'fold' ? 'var(--fold)' : d.azione === 'call' ? 'var(--call)' : 'var(--raise)';
+    p.innerHTML = '<span class="lbl">Sistema Jev · ' + name + '</span>' +
+      '<div style="font:700 34px/1.1 var(--display);text-transform:uppercase;color:' + col + ';margin:6px 0">' + esc(d.testo) + '</div>' +
+      '<div class="row"><button class="btn primary" id="sjDo" type="button">Registra l\'azione del Sistema</button></div>';
+    $('sjDo').onclick = function () {
+      var t = d.azione === 'raise' ? 'raise' : d.azione === 'allin' ? 'allin' : d.azione === 'fold' ? 'fold' : 'call';
+      TP.act(s, t, d.a);
+    };
+  }
+  function poll() {
+    var s = seat(), h = TP.state.hand;
+    if (s === null || !h || h.toAct !== s || h.done) { renderPanel(s === null || !h ? null : { stato: 'attesa', testo: h && h.toAct != null ? 'Tocca a ' + TP.state.players[h.toAct].name : 'In attesa' }); return; }
+    api('/api/decisione').then(function (d) { lastDec = d; renderPanel(d); }).catch(function () { renderPanel({ stato: 'errore', testo: 'Server del Sistema non raggiungibile' }); });
+  }
+
+  api('/api/ping').then(function (r) {
+    if (!r || !r.ok) return;
+    on = true;
+    TP.onChange(function () { push(); renderSettings(); });
+    settingsCard(); push(); poll(); setInterval(poll, 1000);
+  }).catch(function () {});
+  return { get active() { return on; } };
 })();
 
 </script>

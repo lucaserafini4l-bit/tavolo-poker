@@ -97,7 +97,8 @@ var DL = (function () {
     else if (st.players[st.button].out) st.button = nextAlive(st, st.button);
     st.handNo++;
     var b = levelBlinds(st), s = seats(st);
-    var h = { no: st.handNo, sb: b.sb, bb: b.bb, street: 0, bets: {}, toAct: s.firstPre, lastRaise: b.bb, startStacks: {}, done: false };
+    var h = { no: st.handNo, sb: b.sb, bb: b.bb, street: 0, bets: {}, toAct: s.firstPre, lastRaise: b.bb, startStacks: {}, done: false,
+      dealer: s.dealer, sbSeat: s.sb, bbSeat: s.bb, acts: [] };
     alive(st).forEach(function (p) { h.bets[p.id] = { street: 0, total: 0, folded: false, allin: false }; h.startStacks[p.id] = p.stack; });
     st.hand = h;
     if (st.cfg.trackChips) { put(st, s.sb, b.sb); put(st, s.bb, b.bb); }
@@ -129,13 +130,20 @@ var DL = (function () {
   function act(st, i, type, to) {
     var h = st.hand, p = st.players[i], b = h.bets[p.id];
     if (!h || !b || b.folded) return st;
-    var before = maxStreet(st);
+    var before = maxStreet(st), tc = Math.min(p.stack, before - b.street), stBefore = b.street, lastBefore = h.lastRaise;
+    var nr = 0; (h.acts || []).forEach(function (a) { if (a.s === h.street && a.up) nr++; });
+    var added = 0;
     if (type === 'fold') b.folded = true;
-    else if (type === 'call') put(st, i, before - b.street);
-    else if (type === 'raise') { put(st, i, Math.max(0, to - b.street)); }
-    else if (type === 'allin') put(st, i, p.stack);
+    else if (type === 'call') added = put(st, i, before - b.street);
+    else if (type === 'raise') { added = put(st, i, Math.max(0, to - b.street)); }
+    else if (type === 'allin') added = put(st, i, p.stack);
     var after = maxStreet(st);
     if (after > before) h.lastRaise = Math.max(h.lastRaise, after - before);
+    // registro delle azioni (statistiche degli avversari per il Sistema Jev): s fase, t tipo, tc da chiamare,
+    // nr rilanci gia' fatti nella fase, up = ha alzato la puntata, full = rilancio completo (>= rilancio minimo)
+    if (!h.acts) h.acts = [];
+    h.acts.push({ i: i, s: h.street, t: type, tc: tc, nr: nr, amt: added, to: b.street, from: stBefore,
+      up: after > before, full: after - before >= lastBefore });
     advance(st, i);
     if (inHand(st).length === 1) h.done = true;
     return st;
@@ -187,6 +195,9 @@ var DL = (function () {
       w.forEach(function (id, j) { st.players[byId[id]].stack += share + (j < rest ? 1 : 0); });
     });
     st.log.push({ hand: h.no, pots: ps.map(function (p, k) { return { amount: p.amount, winners: winners[k] || p.eligible }; }) });
+    // archivio compatto delle mani finite (per le statistiche del Sistema Jev)
+    if (!st.hands) st.hands = [];
+    st.hands.push({ no: h.no, sb: h.sb, bb: h.bb, dealer: h.dealer, players: Object.keys(h.bets).map(Number), acts: h.acts || [] });
     st.hand = null;
     return eliminate(st, h.startStacks);
   }

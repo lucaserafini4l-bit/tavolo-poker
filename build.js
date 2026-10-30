@@ -8,6 +8,7 @@ const scripts=[
   src('dealer.js'),
   src('app.js'),
   src('calc.js'),
+  src('sistema-link.js'),
 ].map(s=>'<script>\n'+s+'\n</script>').join('\n');
 const fonts='<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">';
 const css='<style>\n'+src('styles.css')+'\n</style>';

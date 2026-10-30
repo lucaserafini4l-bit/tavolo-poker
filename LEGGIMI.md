@@ -14,6 +14,8 @@ Il sito pubblicato è il file `index.html` nella cartella principale, costruito 
 | `matrix.json` | Matrice delle probabilità 169 × 169 tra mani |
 | `nash.json` | Range all-in/fold per 2–10 giocatori e 2–20 grandi bui (generati con `gen_nash.js`) |
 | `test_dealer.js` | Test della logica del dealer (`node test_dealer.js`) |
+| `sistema-link.js` | Collegamento al Sistema Jev: attivo solo quando l'app è aperta dal server sul portatile (http), spento su GitHub Pages |
+| `test_sistema.js` | Banco di prova app + Sistema Jev: tornei completi con il server acceso (`node test_sistema.js 10`) |
 
 **Per ricostruire `index.html`:**
 

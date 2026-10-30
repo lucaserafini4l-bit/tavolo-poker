@@ -29,4 +29,18 @@ DL.award(t,[[0,2]]);console.log(t.players.map(p=>p.stack).join(' '),'sum',DL.tot
 let tm=DL.newTournament({minutes:10});DL.timerStart(tm,0);DL.timerNow(tm,10*60000+5);assert.strictEqual(tm.timer.level,1);DL.timerNow(tm,100*60000);assert.strictEqual(tm.timer.level,4);
 DL.timerPause(tm,100*60000);console.log('remaining',tm.timer.remaining);
 console.log('prizes',JSON.stringify(DL.prizes(st)));
+// registro azioni (Sistema Jev)
+let r=DL.newTournament({names:['A','B','C','D']});DL.startHand(r);// btn0 sb1 bb2, primo a parlare 3
+DL.act(r,3,'raise',100);DL.act(r,0,'call');DL.act(r,1,'fold');DL.act(r,2,'raise',300);DL.act(r,3,'call');DL.act(r,0,'fold');
+let A=r.hand.acts;
+assert.deepStrictEqual(A.map(a=>[a.i,a.t,a.tc,a.nr,a.up]),[[3,'raise',40,0,true],[0,'call',100,1,false],[1,'fold',80,1,false],[2,'raise',60,1,true],[3,'call',200,2,false],[0,'fold',200,2,false]]);
+assert.strictEqual(A[3].full,true);
+DL.nextStreet(r);DL.act(r,2,'call');DL.act(r,3,'raise',200);DL.act(r,2,'fold');
+assert.deepStrictEqual(r.hand.acts.slice(6).map(a=>[a.i,a.s,a.t,a.tc,a.nr,a.up]),[[2,1,'call',0,0,false],[3,1,'raise',0,0,true],[2,1,'fold',200,1,false]]);
+DL.award(r,[[3]]);assert.strictEqual(r.hands.length,1);assert.strictEqual(r.hands[0].acts.length,9);assert.deepStrictEqual(r.hands[0].players,[0,1,2,3]);
+assert.strictEqual(r.hands[0].dealer,0);assert.strictEqual(DL.totals(r).chips,4000);
+// all-in incompleto: full=false
+let q=DL.newTournament({names:['A','B','C'],startStack:1000});q.players[0].stack=1000;DL.startHand(q);// btn0 sb1 bb2
+DL.act(q,0,'raise',200);q.players[1].stack=230-20;DL.act(q,1,'allin');// sb mette in tutto 230: rilancio di 30 < 160
+assert.strictEqual(q.hand.acts[1].up,true);assert.strictEqual(q.hand.acts[1].full,false);
 console.log('ALL OK');

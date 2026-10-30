@@ -450,5 +450,8 @@ var TP = (function () {
   setInterval(tick, 250);
   if (st.timer.running) wake(true);
 
-  return { get state() { return st; }, onChange: function (f) { listeners.push(f); }, show: show };
+  return { get state() { return st; }, onChange: function (f) { listeners.push(f); }, show: show,
+    // usati dal collegamento al Sistema Jev (sistema-link.js)
+    update: function (fn) { snapshot(); fn(st); save(); renderAll(); },
+    act: function (i, type, to) { snapshot(); DL.act(st, i, type, to); raiseOpen = null; save(); renderAll(); } };
 })();
